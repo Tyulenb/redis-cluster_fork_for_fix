@@ -1,32 +1,35 @@
-MASTER_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' redis-cluster_master_1)
-SLAVE_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' redis-cluster_slave_1)
-SENTINEL_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' redis-cluster_sentinel_1)
+MASTER_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $(docker compose ps -q master))
+SLAVE_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $(docker compose ps -q slave))
+SENTINEL_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' $(docker compose ps -q sentinel))
 
-echo Redis master: $MASTER_IP
-echo Redis Slave: $SLAVE_IP
-echo ------------------------------------------------
-echo Initial status of sentinel
-echo ------------------------------------------------
-docker exec redis-cluster_sentinel_1 redis-cli -p 26379 info Sentinel
-echo Current master is
-docker exec redis-cluster_sentinel_1 redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
-echo ------------------------------------------------
+echo "Redis master: $MASTER_IP"
+echo "Redis Slave: $SLAVE_IP"
+echo "------------------------------------------------"
+echo "Initial status of sentinel"
+echo "------------------------------------------------"
 
-echo Stop redis master
-docker pause redis-cluster_master_1
-echo Wait for 10 seconds
+docker exec $(docker compose ps -q sentinel) redis-cli -p 26379 info Sentinel
+
+echo "Current master is:"
+docker exec $(docker compose ps -q sentinel) redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
+echo "------------------------------------------------"
+
+echo "Stopping Redis master..."
+docker pause $(docker compose ps -q master)
+echo "Waiting for 10 seconds..."
 sleep 10
-echo Current infomation of sentinel
-docker exec redis-cluster_sentinel_1 redis-cli -p 26379 info Sentinel
-echo Current master is
-docker exec redis-cluster_sentinel_1 redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
 
+echo "Current information of sentinel after stopping master:"
+docker exec $(docker compose ps -q sentinel) redis-cli -p 26379 info Sentinel
+echo "Current master is:"
+docker exec $(docker compose ps -q sentinel) redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
+echo "------------------------------------------------"
 
-echo ------------------------------------------------
-echo Restart Redis master
-docker unpause redis-cluster_master_1
+echo "Restarting Redis master..."
+docker unpause $(docker compose ps -q master)
 sleep 5
-echo Current infomation of sentinel
-docker exec redis-cluster_sentinel_1 redis-cli -p 26379 info Sentinel
-echo Current master is
-docker exec redis-cluster_sentinel_1 redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster
+
+echo "Current information of sentinel after restarting master:"
+docker exec $(docker compose ps -q sentinel) redis-cli -p 26379 info Sentinel
+echo "Current master is:"
+docker exec $(docker compose ps -q sentinel) redis-cli -p 26379 SENTINEL get-master-addr-by-name mymaster

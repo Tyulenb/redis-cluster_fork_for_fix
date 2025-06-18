@@ -17,17 +17,15 @@ git config --global core.autocrlf false
 
 The template defines the topology of the Redis cluster:
 ```yml
-version: '3.9'
+version: '3'
 
 services:
   master:
     image: redis:latest
-    container_name: redis-master
 
   slave:
     image: redis:latest
-    container_name: redis-slave
-    command: redis-server --slaveof redis-master 6379
+    command: redis-server --slaveof master 6379
     depends_on:
     - master
 
@@ -35,13 +33,13 @@ services:
     build:
       context: ./sentinel
       dockerfile: Dockerfile
-    container_name: redis-sentinel
     environment:
       - SENTINEL_DOWN_AFTER=5000
       - SENTINEL_FAILOVER=5000
     depends_on:
     - master
     - slave
+
 ```
 
 Notes:
